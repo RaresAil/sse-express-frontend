@@ -32,7 +32,7 @@ export default class App extends Component<{}, { nests: Nest[] }> {
   };
 
   componentDidMount() {
-    const events = new EventSource('http://localhost:4000/api/v1/sse/events');
+    const events = new EventSource('/api/v1/sse/events');
     events.onmessage = (event) => {
       this.updateNests(JSON.parse(event.data));
     };
