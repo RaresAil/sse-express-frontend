@@ -1,40 +1,59 @@
-import { useEffect, useState } from 'react';
+import { Component } from 'react';
 
 import Table from './Table';
 
-function App() {
-  const [nests, setNests] = useState<Nest[]>([]);
-  const [listening, setListening] = useState(false);
+export default class App extends Component<{}, { nests: Nest[] }> {
+  state = {
+    nests: []
+  };
 
-  useEffect(() => {
-    if (!listening) {
-      const events = new EventSource('/api/v1/sse/events');
-      events.onmessage = (event) => {
-        const nestData = JSON.parse(event.data);
-        if (Array.isArray(nestData)) {
-          setNests(nestData);
-        } else {
-          setNests([...nests, nestData]);
-        }
-      };
+  private updateNests = (nestData: Nest) => {
+    if (Array.isArray(nestData)) {
+      this.setState({
+        nests: nestData
+      });
+    } else {
+      const currentNest = this.state.nests.findIndex(
+        ({ id }) => id === nestData.id
+      );
 
-      setListening(true);
+      if (currentNest >= 0) {
+        const nsts: Nest[] = [...this.state.nests];
+        nsts[currentNest] = nestData;
+        this.setState({
+          nests: nsts
+        });
+      } else {
+        this.setState({
+          nests: [...this.state.nests, nestData]
+        });
+      }
     }
-  }, [listening, nests]);
+  };
 
-  return (
-    <div className="app">
-      <Table data={nests} />
-    </div>
-  );
+  componentDidMount() {
+    const events = new EventSource('http://localhost:4000/api/v1/sse/events');
+    events.onmessage = (event) => {
+      this.updateNests(JSON.parse(event.data));
+    };
+  }
+
+  render() {
+    return (
+      <div className="app">
+        <Table data={this.state.nests} />
+      </div>
+    );
+  }
 }
 
-export default App;
-
 export interface Nest {
+  id: number;
   country: string;
   code: string;
   currency: string;
   level: number;
   units: string;
+  total: number;
+  quantity: number;
 }
